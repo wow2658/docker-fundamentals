@@ -1,4 +1,4 @@
-# AI/SW 개발 워크스테이션 구축 결과 보고서 구성변경
+# AI/SW 개발 워크스테이션 구축 결과 보고서 작성 중간저장01
 
 ## 1. 프로젝트 개요
 - 목표: 코드가 특정 로컬 환경에서만 동작하는 문제를 방지하고, 팀원 누구나 동일하게 재현 가능한 실행 환경 구축.
@@ -19,29 +19,98 @@
 * **검증 방법:** `pwd`, `mkdir`, `touch`, `cp`, `ls -la` 명령어를 통해 작업 디렉토리 생성 및 파일 복사/이동 확인.
 * **수행 로그:**
 ```bash
+# 1. 현재 위치 확인
+pwd
+
+# 2. 과제용 격리 폴더 생성 및 이동
+mkdir assignment-workspace
+cd assignment-workspace
+pwd
+
+# 3. 빈 파일 생성
+touch empty_file.txt
+
+# 4. 파일에 내용 넣기 및 내용 확인
+echo "이건탁 터미널 조작 테스트 데이터입니다." > data.txt
+cat data.txt
+
+# 5. 파일 복사
+cp data.txt copy_data.txt
+
+# 6. 파일 이동 / 이름 변경
+mv copy_data.txt renamed_data.txt
+
+# 7. 목록 확인 (숨김 파일 포함)
+ls -al
+
+# 8. 파일 삭제
+rm empty_file.txt
+
+# 9. 삭제 후 목록 재확인
+ls -al
 
 ```
+![터미널01스크린샷 2026-04-02 오후 7 39 43](https://github.com/user-attachments/assets/e7ba6417-7242-4d60-9fab-40826f9e34aa)
+![터미널02스크린샷 2026-04-02 오후 7 39 43](https://github.com/user-attachments/assets/6d410fa6-36a2-4a7a-ba13-0806d6e1cb4b)
+![터미널03스크린샷 2026-04-02 오후 7 39 43](https://github.com/user-attachments/assets/41414d09-1299-4329-96e9-475de3c9803c)
+
 
 ### [x] 3.2 권한 변경 실습
 * **검증 방법:** `chmod` 명령어로 파일 및 디렉토리 권한을 변경하고, `ls -l`로 변경 전후(예: 644 -> 755) 상태 비교.
 * **수행 로그:**
-```bash
 
+```bash
+# 10. 권한 실습용 디렉토리 생성
+mkdir test_dir
+
+# 11. [디렉토리] 권한 변경 전 확인
+ls -ld test_dir
+
+# 12. [디렉토리] 권한 777로 변경 및 변경 후 확인
+chmod 777 test_dir
+ls -ld test_dir
+
+# 13. [파일] 권한 변경 전 확인
+ls -l data.txt
+
+# 14. [파일] 권한 777로 변경 및 변경 후 확인
+chmod 777 data.txt
+ls -l data.txt
 ```
 
 ### [x] 3.3 Docker 설치 및 기본 점검
 * **검증 방법:** `docker --version` 및 `docker info` 명령어를 통해 데몬 정상 동작 여부 확인.
 * **수행 로그:**
-```bash
 
+```bash
+# 1. 도커 버전 확인
+docker --version
+
+# 2. 도커 데몬 정상 동작 점검 (시스템 정보 출력)
+docker info
 ```
+<img width="800" height="1626" alt="스크린샷_2026-04-02_오후_8 35 04" src="https://github.com/user-attachments/assets/3baf19b9-0ea7-4c90-b7cb-7f72d2a51ad9" />
+
 
 ### [x] 3.4 hello-world 및 ubuntu 컨테이너 실행 (기본 운영 명령)
 * **검증 방법:** `hello-world` 이미지 실행으로 기본 동작 검증, `ubuntu` 컨테이너 내부 진입 후 명령어 실행 및 `docker ps` 상태 확인.
 * **수행 로그:**
 ```bash
+docker run hello-world
 
+docker run -it -d --name test-attach ubuntu:22.04 bash
+
+docker run -it -d --name test-exec ubuntu:22.04 bash
+
+docker ps -a
+
+docker attach test-attach
+exit
+
+docker exec -it test-exec bash
+exit
 ```
+<img width="2038" height="2126" alt="스크린샷 2026-04-02 오후 9 24 29" src="https://github.com/user-attachments/assets/54493dbe-ea7e-4355-82d7-0faf20f562b7" />
 
 ### [x] 3.5 기존 Dockerfile 기반 커스텀 이미지 제작
 * **검증 방법:** `nginx:alpine` 베이스 이미지에 커스텀 HTML 파일을 복사하는 Dockerfile 작성 후 `docker build` 성공 확인.
@@ -49,6 +118,8 @@
 ```bash
 
 ```
+<img width="2234" height="2990" alt="스크린샷 2026-04-02 오후 9 33 34" src="https://github.com/user-attachments/assets/78a2b674-ddfc-4896-8251-cb1e6f392105" />
+<img width="2234" height="1508" alt="스크린샷 2026-04-02 오후 9 33 46" src="https://github.com/user-attachments/assets/b2b387bd-fd2f-46d0-814c-069aba4d92ae" />
 
 ### [x] 3.6 포트 매핑 및 브라우저 접속 증거
 * **검증 방법:** `-p` 옵션으로 호스트와 컨테이너 포트를 매핑하여 백그라운드(`-d`) 실행 후, `curl` 및 브라우저 접속 확인.
@@ -58,6 +129,9 @@
 ```
 * **브라우저 접속 증거:**
 *(여기에 http://localhost:8080 에 접속된 브라우저 화면 스크린샷 캡처본 첨부 - 주소창 포함)*
+<img width="800" height="238" alt="image" src="https://github.com/user-attachments/assets/479a52c8-ae1f-418e-a60d-a3be63b41a0a" />
+<img width="2058" height="630" alt="image" src="https://github.com/user-attachments/assets/d928cea1-d76d-49fc-bb6e-92a6e6123955" />
+
 
 ### [x] 3.7 바인드 마운트 반영
 * **검증 방법:** 호스트의 디렉토리를 컨테이너에 마운트(`-v`)하고, 호스트에서 파일을 수정했을 때 컨테이너에 즉각 반영되는지 확인.
