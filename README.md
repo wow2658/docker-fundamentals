@@ -1,4 +1,4 @@
-# AI/SW 개발 워크스테이션 구축 결과 보고서 작성 중간저장01
+# AI/SW 개발 워크스테이션 구축 결과 보고서 작성 중간저장02
 
 ## 1. 프로젝트 개요
 - 목표: 코드가 특정 로컬 환경에서만 동작하는 문제를 방지하고, 팀원 누구나 동일하게 재현 가능한 실행 환경 구축.
@@ -116,16 +116,50 @@ exit
 * **검증 방법:** `nginx:alpine` 베이스 이미지에 커스텀 HTML 파일을 복사하는 Dockerfile 작성 후 `docker build` 성공 확인.
 * **수행 로그:**
 ```bash
+# A 방식 (App 베이스 : NGINX)
+mkdir -p src-a && cd src-a
+echo "<h1>Docker Assignment - Method (A) App Base</h1>" > index.html
+echo -e "FROM nginx:alpine\nCOPY index.html /usr/share/nginx/html/" > Dockerfile
+docker build -t my-web-a:1.0 .
 
+docker run -d -p 8080:80 --name test-web-a my-web-a:1.0
 ```
+```bash
+# B 방식 (OS 베이스 : Ubuntu)
+mkdir -p src-b && cd src-b
+echo "<h1>Docker Assignment - Method (B) OS Base</h1>" > index.html
+cat << 'EOF' > Dockerfile
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y nginx
+COPY index.html /var/www/html/
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+docker build -t my-web-b:1.0 .
+
+docker run -d -p 8081:80 --name test-web-b my-web-b:1.0
+```
+
 <img width="2234" height="2990" alt="스크린샷 2026-04-02 오후 9 33 34" src="https://github.com/user-attachments/assets/78a2b674-ddfc-4896-8251-cb1e6f392105" />
+
+```bash
+docker images
+
+docker ps -a
+
+docker logs test-web-a
+
+docker stats --no-stream test-web-a test-web-b test-exec
+```
+
 <img width="2234" height="1508" alt="스크린샷 2026-04-02 오후 9 33 46" src="https://github.com/user-attachments/assets/b2b387bd-fd2f-46d0-814c-069aba4d92ae" />
 
 ### [x] 3.6 포트 매핑 및 브라우저 접속 증거
 * **검증 방법:** `-p` 옵션으로 호스트와 컨테이너 포트를 매핑하여 백그라운드(`-d`) 실행 후, `curl` 및 브라우저 접속 확인.
 * **수행 로그:**
 ```bash
-
+curl http://localhost:8080
+curl http://localhost:8081
 ```
 * **브라우저 접속 증거:**
 *(여기에 http://localhost:8080 에 접속된 브라우저 화면 스크린샷 캡처본 첨부 - 주소창 포함)*
@@ -139,6 +173,7 @@ exit
 ```bash
 
 ```
+<img width="2626" height="1372" alt="image" src="https://github.com/user-attachments/assets/8cfa285b-cf1d-4a1b-8544-fc8d97dac216" />
 
 ### [x] 3.8 Docker 볼륨 영속성 검증
 * **검증 방법:** Docker 볼륨 생성 후 컨테이너에 연결하여 데이터 쓰기 진행. 컨테이너 삭제 후 새 컨테이너에 동일 볼륨 연결 시 데이터 유지 확인.
@@ -146,6 +181,80 @@ exit
 ```bash
 
 ```
+<img width="2626" height="1206" alt="image" src="https://github.com/user-attachments/assets/fffe0f39-8845-4d71-99d5-a276db2970aa" />
+
+```mermaid
+graph LR
+    %% Phase 1
+    subgraph P1 [Phase 1: 데이터 기록 및 마운트]
+        direction TB
+        C1(Container A<br>vol-test / Running) -->|mount /data| V1[(Docker Volume<br>my-vol)]
+    end
+
+    %% Phase 2
+    subgraph P2 [Phase 2: 컨테이너 파괴]
+        direction TB
+        C2(Container A<br>Destroyed) -.->|link broken| V2[(Docker Volume<br>my-vol / 유지됨)]
+    end
+
+    %% Phase 3
+    subgraph P3 [Phase 3: 볼륨 재연결]
+        direction TB
+        C3(Container B<br>vol-test2 / Running) -->|remount /data| V3[(Docker Volume<br>my-vol)]
+    end
+
+    %% Phase 연결
+    P1 --> P2 --> P3
+
+    %% 노드 스타일 정의
+    %% Running Container: #1d3a5e fill, #4e8fd9 stroke
+    %% Destroyed Container: #5e2b2c fill, #f85149 stroke
+    %% Docker Volume: #1c4f3a fill, #3fb950 stroke
+
+    %% Style classes
+    classDef container fill:#1d3a5e,stroke:#4e8fd9,color:#c9d1d9,stroke-width:2px;
+    classDef destroyed fill:#5e2b2c,stroke:#f85149,color:#c9d1d9,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef volume fill:#1c4f3a,stroke:#3fb950,color:#c9d1d9,stroke-width:2px;
+
+    %% Assign classes
+    class C1,C3 container;
+    class C2 destroyed;
+    class V1,V2,V3 volume;
+
+    %% Link styles (Phase 2의 점선 링크 색상 변경, 인덱스 1)
+    linkStyle 1 stroke:#f85149,stroke-width:2px,stroke-dasharray: 5 5;
+```
+
+```mermaid
+graph TD
+    %% 오개념 섹션 (Wrong) - 텍스트 확장을 통한 가로폭 동기화
+    subgraph Wrong [오개념: 데이터 복제 및 동기화 발생]
+        direction LR
+        C1[Container<br>/data/file.txt<br>가상 공간 내부의 파일 객체] -.->|&nbsp;&nbsp;&nbsp;❌ 데이터의 물리적 복사/이동 발생 착각&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;불필요한 I/O 연산 및 오버헤드 동반 착각&nbsp;&nbsp;&nbsp;| V1[(Docker Volume<br>_data/file.txt<br>물리 디스크 영역의 완전한 복사본)]
+    end
+
+    %% 여백을 위한 투명 연결
+    Wrong ~~~ Fact
+
+    %% 정정 섹션 (Fact)
+    subgraph Fact [정정: 메모리 주소 직접 참조 포인터]
+        direction LR
+        C2[Container<br>*ptr = /data<br>단순 연결 통로/주소값] ===>|💡 직접 참조 / Dereference<br>복사 0바이트, 즉시 물리 I/O| V2[(Host OS<br>Real Data<br>/var/lib/docker/.../_data)]
+    end
+
+    %% 노드 스타일 정의 (Dark Theme 호환)
+    classDef wrongNode fill:#2d1114,stroke:#f85149,color:#c9d1d9,stroke-width:2px;
+    classDef rightCont fill:#122b50,stroke:#1f6feb,color:#c9d1d9,stroke-width:2px;
+    classDef rightVol fill:#11341c,stroke:#238636,color:#c9d1d9,stroke-width:2px;
+
+    class C1,V1 wrongNode;
+    class C2 rightCont;
+    class V2 rightVol;
+```
+
+**[구조 분석 요약]**
+* **오개념 리스크:** 컨테이너와 볼륨을 별개의 저장소로 인지. I/O 작업 시 양방향으로 데이터 복사(이동) 연산이 발생한다고 착각함. 이는 스토리지 병목 현상 및 데이터 동기화 지연에 대한 잘못된 판단을 유발함.
+* **정정 (Fact):** 마운트된 경로는 **C언어의 포인터(*ptr)**와 완벽히 동일함. 원본 데이터는 호스트에 단 하나만 존재. 컨테이너는 주소값(Mount)을 역참조하여 디스크 섹터에 직접 데이터를 기록하므로 데이터 복제 비용이 0(Zero)임.
 
 ### [x] 3.9 Git 설정 및 GitHub 연동
 * **검증 방법:** `git config` 설정 확인 및 VSCode에서 원격 저장소 푸시 완료 확인.
