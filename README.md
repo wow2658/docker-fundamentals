@@ -275,31 +275,55 @@ docker run -d --name vol-test2 -v my-vol:/data ubuntu:22.04 sleep infinity
 <img width="2626" height="1206" alt="image" src="https://github.com/user-attachments/assets/fffe0f39-8845-4d71-99d5-a276db2970aa" />
 
 <img width="876" height="498" alt="image" src="https://github.com/user-attachments/assets/26ba3471-bb9b-4be8-ab5a-ab11bdba8f6c" />
-
-
 <br>
+<br>
+<br>
+<br><br>
 <br>
 
 <div align="center">
 
-**< 컨테이너 마운트 경로(/data)가 어떻게 데이터 동기화(복제)되는건지 궁금했음 >**
 
 </div>
 
+ > 컨테이너 마운트 경로(/data)가 어떻게 데이터 동기화(복제)되는거지??
+<img width="865" height="375" alt="image" src="https://github.com/user-attachments/assets/c800ee97-a00e-4413-8230-c3760a3e8be8" />
+  
+* **핵심 전제:** 컨테이너는 가상머신(VM)과 달리 호스트 OS의 커널을 공유하며 네임스페이스(Namespace)에 의해 논리적으로 격리된 단일 프로세스로 동작함. 또한, 컨테이너 내부 파일시스템은 임시 레이어(OverlayFS)로 구성되어 컨테이너 파괴 시 내부 데이터가 영구 소멸(휘발)되는 특성을 지님.
+  
+<br>
+<img width="862" height="361" alt="image" src="https://github.com/user-attachments/assets/cab0b746-2e2e-47a8-9c5b-9a70fd432fd4" />
 
-* **오개념:** 컨테이너와 볼륨을 별개의 저장소로 인지. I/O 작업 시 양방향으로 데이터 복사(이동) 연산이 발생한다고 착각함. 이는 스토리지 병목 현상 및 데이터 동기화 지연에 대한 잘못된 판단을 유발함.
-<img width="881" height="325" alt="image" src="https://github.com/user-attachments/assets/1ba75b19-c9b7-41da-b74b-442f9b5b23ac" />
+* **오개념:** 컨테이너 내부 임시 공간에 데이터가 선행 기록된 후, 도커 엔진이 이를 'Docker Volume'이라는 별개의 가상 저장소로 복사 및 동기화한다고 착각함. 이는 I/O 작업 시 양방향 데이터 이동이 발생하여 스토리지 병목 현상 및 동기화 지연을 유발한다는 잘못된 판단으로 직결됨.
+  
+<br>
+<img width="869" height="403" alt="image" src="https://github.com/user-attachments/assets/7763e103-bb64-461f-902e-1f8bbf00596f" />
 
+* **정정:** 도커 볼륨은 독립된 가상 공간이 아닌 호스트 OS 물리 디스크 내부에 생성된 실제 디렉토리임. 마운트된 경로(/data)는 해당 호스트 디렉토리를 가리키는 C언어의 포인터(역참조) 역할을 수행하므로, 데이터 조작 시 복제 비용 발생(Zero-Copy) 없이 호스트 물리 디스크에 즉시 직접 기록됨.
 
+  
 <br>
 <br>
 
-* **정정 (Fact):** 마운트된 경로는 C언어의 포인터(*ptr)와 동일함. 원본 데이터는 호스트에 단 하나만 존재. 컨테이너는 주소값(Mount)을 역참조하여 디스크 섹터에 직접 데이터를 기록하므로 데이터 복제 비용이 0(Zero)임.
-<img width="879" height="338" alt="image" src="https://github.com/user-attachments/assets/75927aa3-9ff9-4ddf-9849-418bc98ee283" />
+> 똑같이 -v 쓰는 바인드 마운트와 볼륨. 둘이 뭐가 다른가?
+<div align="center">
+  
+
+
+</div>
+
+<img width="789" height="288" alt="image" src="https://github.com/user-attachments/assets/58cfaa28-4a8f-4f04-a44f-d4f8570d714f" />
+<img width="796" height="922" alt="image" src="https://github.com/user-attachments/assets/b5593c55-2619-4fcd-9fba-a16db19abca4" />
+
+
+    
+<br>
+<br>
 
 ### ✅ 3.9 Git 설정 및 GitHub 연동
 * **검증 방법:** `git config` 설정 확인 및 VSCode에서 원격 저장소 푸시 완료 확인.
 * **수행 로그:**
+
 ```bash
 # config: Git의 작동 방식이나 사용자 정보를 설정하는 명령어.
 # --global: 현재 컴퓨터에 로그인된 사용자 계정 전역(~/.gitconfig)에 설정을 적용함. 어느 디렉토리에서 작업하든 기본값으로 쓰임.
